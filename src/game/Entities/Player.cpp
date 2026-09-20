@@ -1742,7 +1742,27 @@ void Player::SetDeathState(DeathState s)
     Unit::SetDeathState(s);
 
     if (hardcoreDeath)
+    {
         SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
+
+        bool announceDeath = true;
+#ifdef ENABLE_PLAYERBOTS
+        announceDeath = isRealPlayer();
+#endif
+        if (announceDeath)
+        {
+            AreaTableEntry const* zone = GetAreaEntryByAreaID(GetCachedZoneId());
+            char const* zoneName = zone ? zone->area_name[sWorld.GetDefaultDbcLocale()] : nullptr;
+
+            char message[256];
+            if (zoneName)
+                snprintf(message, sizeof(message), "%s has died at level %u while in %s.", GetName(), GetLevel(), zoneName);
+            else
+                snprintf(message, sizeof(message), "%s has died at level %u.", GetName(), GetLevel());
+
+            sWorld.SendServerMessage(SERVER_MSG_CUSTOM, message);
+        }
+    }
     // restore resurrection spell id for player after aura remove
     else if (s == JUST_DIED && cur && ressSpellId)
         SetUInt32Value(PLAYER_SELF_RES_SPELL, ressSpellId);

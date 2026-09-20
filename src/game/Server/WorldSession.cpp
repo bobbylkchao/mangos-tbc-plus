@@ -891,6 +891,9 @@ void WorldSession::SendMotd()
     while (std::getline(ss, token, '@'))
         lines.push_back(token);
 
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED))
+        lines.emplace_back("|cffff0000You have entered Hardcore mode. Enjoy the challenge!|r");
+
     WorldPacket data(SMSG_MOTD, 4);
     data << (uint32) lines.size();
 
