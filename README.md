@@ -1,13 +1,13 @@
-# mangos-tbc
+# mangos-tbc-plus
 
 [![Windows](../../actions/workflows/windows.yml/badge.svg)](../../actions/workflows/windows.yml) [![Ubuntu](../../actions/workflows/ubuntu.yml/badge.svg)](../../actions/workflows/ubuntu.yml) [![MacOS](../../actions/workflows/macos.yml/badge.svg)](../../actions/workflows/macos.yml)
 
 This repository is a modified version of WoW CMaNGOS TBC, that adds interesting features—such as Hardcore and Plainsrunning etc. —while preserving the original gameplay.
 
-It is a fork of [cmangos/mangos-tbc](https://github.com/cmangos/mangos-tbc). The working tree for this project lives at [github.com/bobbylkchao/mangos-tbc](https://github.com/bobbylkchao/mangos-tbc).
+It is a fork of [cmangos/mangos-tbc](https://github.com/cmangos/mangos-tbc). The working tree for this project lives at [github.com/bobbylkchao/mangos-tbc-plus](https://github.com/bobbylkchao/mangos-tbc-plus).
 
 ```text
-git clone https://github.com/bobbylkchao/mangos-tbc.git
+git clone https://github.com/bobbylkchao/mangos-tbc-plus.git
 ```
 
 This file is part of the CMaNGOS Project. See [AUTHORS](AUTHORS.md) and [COPYRIGHT](COPYRIGHT.md) files for Copyright information.
@@ -69,9 +69,9 @@ To be able to accomplish these goals, we support and promote:
 ## Further information
 
   This fork:
-  * [Repository](https://github.com/bobbylkchao/mangos-tbc)
-  * [Issues](https://github.com/bobbylkchao/mangos-tbc/issues)
-  * [Pull Requests](https://github.com/bobbylkchao/mangos-tbc/pulls)
+  * [Repository](https://github.com/bobbylkchao/mangos-tbc-plus)
+  * [Issues](https://github.com/bobbylkchao/mangos-tbc-plus/issues)
+  * [Pull Requests](https://github.com/bobbylkchao/mangos-tbc-plus/pulls)
 
   Upstream CMaNGOS:
   * [CMaNGOS Discord](https://discord.gg/Dgzerzb)
