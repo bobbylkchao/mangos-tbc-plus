@@ -40,6 +40,29 @@ if(BUILD_PLAYERBOTS)
     message(STATUS "Playerbots module already populated: ${playerbots_POPULATED}")
   endif()
 
+  set(PLAYERBOTS_LFG_PATCH "${CMAKE_SOURCE_DIR}/patches/playerbots-lfg-level-sync.patch")
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} apply --reverse --check "${PLAYERBOTS_LFG_PATCH}"
+    WORKING_DIRECTORY "${playerbots_SOURCE_DIR}"
+    RESULT_VARIABLE PLAYERBOTS_LFG_PATCH_APPLIED
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+  if(NOT PLAYERBOTS_LFG_PATCH_APPLIED EQUAL 0)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} apply "${PLAYERBOTS_LFG_PATCH}"
+      WORKING_DIRECTORY "${playerbots_SOURCE_DIR}"
+      RESULT_VARIABLE PLAYERBOTS_LFG_PATCH_RESULT
+      ERROR_VARIABLE PLAYERBOTS_LFG_PATCH_ERROR
+    )
+    if(NOT PLAYERBOTS_LFG_PATCH_RESULT EQUAL 0)
+      message(FATAL_ERROR "Unable to apply PlayerBots LFG patch: ${PLAYERBOTS_LFG_PATCH_ERROR}")
+    endif()
+    message(STATUS "Applied PlayerBots LFG level sync patch")
+  else()
+    message(STATUS "PlayerBots LFG level sync patch already applied")
+  endif()
+
   add_subdirectory(${playerbots_SOURCE_DIR})
 
 else()

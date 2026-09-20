@@ -1,0 +1,132 @@
+diff --git a/playerbot/PlayerbotFactory.cpp b/playerbot/PlayerbotFactory.cpp
+index 2f03556f..dd8baa1e 100644
+--- a/playerbot/PlayerbotFactory.cpp
++++ b/playerbot/PlayerbotFactory.cpp
+@@ -108,7 +108,7 @@ void PlayerbotFactory::Init()
+     }
+ }
+ 
+-void PlayerbotFactory::Prepare()
++void PlayerbotFactory::Prepare(bool forceLevel)
+ {
+     /*if (!itemQuality)
+     {
+@@ -147,7 +147,7 @@ void PlayerbotFactory::Prepare()
+         }
+     }*/
+ 
+-    if (!sPlayerbotAIConfig.disableRandomLevels)
++    if (forceLevel || !sPlayerbotAIConfig.disableRandomLevels)
+     {
+         bot->SetLevel(level);
+         //Reset xp and xp for next level.
+@@ -166,12 +166,12 @@ void PlayerbotFactory::Prepare()
+     }
+ }
+ 
+-void PlayerbotFactory::Randomize(bool incremental, bool syncWithMaster)
++void PlayerbotFactory::Randomize(bool incremental, bool syncWithMaster, bool forceLevel)
+ {
+     sLog.outDetail("Preparing to %s randomize...", (incremental ? "incremental" : "full"));
+-    Prepare();
++    Prepare(forceLevel);
+ 
+-    if (sPlayerbotAIConfig.disableRandomLevels)
++    if (sPlayerbotAIConfig.disableRandomLevels && !forceLevel)
+     {
+         return;
+     }
+diff --git a/playerbot/PlayerbotFactory.h b/playerbot/PlayerbotFactory.h
+index 021e630b..1c3a2f13 100644
+--- a/playerbot/PlayerbotFactory.h
++++ b/playerbot/PlayerbotFactory.h
+@@ -50,7 +50,7 @@ public:
+     static ObjectGuid GetRandomBot();
+     static void Init();
+     void Refresh();
+-    void Randomize(bool incremental, bool syncWithMaster);
++    void Randomize(bool incremental, bool syncWithMaster, bool forceLevel = false);
+     static std::list<uint32> classQuestIds;
+     static std::list<uint32> specialQuestIds;
+     void InitSkills();
+@@ -68,7 +68,7 @@ public:
+     void InitPetSpells();
+ 
+ private:
+-    void Prepare();
++    void Prepare(bool forceLevel = false);
+     void InitSecondEquipmentSet();
+     void Shuffle(std::vector<uint32>& items);
+     void InitEquipment(bool incremental, bool syncWithMaster, bool progressive = sPlayerbotAIConfig.randomGearProgression, bool partialUpgrade = false);
+diff --git a/playerbot/strategy/actions/InviteToGroupAction.cpp b/playerbot/strategy/actions/InviteToGroupAction.cpp
+index 367cd28f..1d3561bd 100644
+--- a/playerbot/strategy/actions/InviteToGroupAction.cpp
++++ b/playerbot/strategy/actions/InviteToGroupAction.cpp
+@@ -1,6 +1,7 @@
+ 
+ #include "playerbot/playerbot.h"
+ #include "InviteToGroupAction.h"
++#include "playerbot/PlayerbotFactory.h"
+ #include "playerbot/ServerFacade.h"
+ #include "playerbot/strategy/values/Formations.h"
+ #include "Guilds/GuildMgr.h"
+@@ -204,12 +205,6 @@ namespace ai
+         if (!ai->IsSafe(requester))
+             return false;
+ 
+-        if (requester->GetLevel() == DEFAULT_MAX_LEVEL && bot->GetLevel() != DEFAULT_MAX_LEVEL)
+-            return false;
+-
+-        if (requester->GetLevel() > bot->GetLevel() + 4 || bot->GetLevel() > requester->GetLevel() + 4)
+-            return false;
+-
+         std::string param = event.getParam();
+ 
+         if (!param.empty() && param != "40" && param != "25" && param != "20" && param != "10" && param != "5")
+@@ -228,6 +223,13 @@ namespace ai
+         if (!Qualified::isValidNumberString(param))
+            param = "5";
+ 
++        uint8 groupSize = uint8(std::stoi(param));
++        if (requester->GetLevel() < 60 && groupSize > 10)
++        {
++            ai->TellError(requester, BOT_TEXT2("Players below level 60 can only use lfg 5 or lfg 10.", {}));
++            return false;
++        }
++
+         if (group)
+         {
+             //If no input use max raid for raid groups.
+@@ -248,7 +250,7 @@ namespace ai
+             }
+         }
+ 
+-        allowedClassNr = AllowedClassRoleNr(requester, stoi(param));  
++        allowedClassNr = AllowedClassRoleNr(requester, groupSize);
+ 
+         role = ai->IsTank(bot, false) ? BOT_ROLE_TANK : (ai->IsHeal(bot, false) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
+         cls = (Classes)bot->getClass();
+@@ -268,6 +270,23 @@ namespace ai
+                 return false;
+         }
+ 
++        if (bot->GetLevel() != requester->GetLevel())
++        {
++            PlayerbotFactory(bot, requester->GetLevel()).Randomize(false, false, true);
++            if (bot->GetLevel() != requester->GetLevel())
++                return false;
++
++            allowedClassNr = AllowedClassRoleNr(requester, groupSize);
++            role = ai->IsTank(bot, false) ? BOT_ROLE_TANK : (ai->IsHeal(bot, false) ? BOT_ROLE_HEALER : BOT_ROLE_DPS);
++            cls = (Classes)bot->getClass();
++
++            if (allowedClassNr[0][role] == 0)
++                return false;
++
++            if (allowedClassNr[cls].find(role) != allowedClassNr[cls].end() && allowedClassNr[cls][role] == 0)
++                return false;
++        }
++
+         bool invite = Invite(requester, bot);
+ 
+         if (invite)

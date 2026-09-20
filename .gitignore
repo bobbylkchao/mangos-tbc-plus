@@ -42,6 +42,7 @@ autom4te.cache
 *.bak
 *.orig
 *.patch
+!patches/playerbots-lfg-level-sync.patch
 callgrind.out.*
 nbproject/
 .idea/
