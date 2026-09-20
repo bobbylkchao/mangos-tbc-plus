@@ -818,6 +818,15 @@ void World::LoadConfigSettings(bool reload)
     setConfigMinMax(CONFIG_UINT32_CHARDELETE_MIN_LEVEL, "CharDelete.MinLevel", 0, 0, getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL));
     setConfig(CONFIG_UINT32_CHARDELETE_KEEP_DAYS, "CharDelete.KeepDays", 30);
 
+    setConfig(CONFIG_BOOL_OUTDOOR_RUN_SPEED_ENABLED, "OutdoorRunSpeed.Enabled", false);
+    if (configNoReload(reload, CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enabled", false))
+        setConfig(CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enabled", false);
+    if (getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && getConfig(CONFIG_UINT32_GAME_TYPE) != REALM_TYPE_NORMAL)
+    {
+        sLog.outString("Hardcore mode enabled: forcing Normal/PVE realm rules.");
+        setConfig(CONFIG_UINT32_GAME_TYPE, uint32(REALM_TYPE_NORMAL));
+    }
+
     if (configNoReload(reload, CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE, "GuidReserveSize.Creature", 100))
         setConfig(CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE,   "GuidReserveSize.Creature",   100);
     if (configNoReload(reload, CONFIG_UINT32_GUID_RESERVE_SIZE_GAMEOBJECT, "GuidReserveSize.GameObject", 100))
@@ -927,6 +936,34 @@ void World::SetInitialWorldSettings()
     uint32 server_type = IsFFAPvPRealm() ? uint32(REALM_TYPE_PVP) : getConfig(CONFIG_UINT32_GAME_TYPE);
     uint32 realm_zone = getConfig(CONFIG_UINT32_REALM_ZONE);
     LoginDatabase.PExecute("UPDATE realmlist SET icon = %u, timezone = %u WHERE id = '%u'", server_type, realm_zone, realmID);
+
+    if (std::unique_ptr<QueryResult> realmNameResult = LoginDatabase.PQuery("SELECT name FROM realmlist WHERE id = '%u'", realmID))
+    {
+        static std::string const hardcoreSuffix = " Hardcore";
+        std::string realmName = realmNameResult->Fetch()[0].GetCppString();
+        bool hasHardcoreSuffix = realmName.size() >= hardcoreSuffix.size() &&
+            realmName.compare(realmName.size() - hardcoreSuffix.size(), hardcoreSuffix.size(), hardcoreSuffix) == 0;
+        bool hardcoreEnabled = getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
+
+        if (hardcoreEnabled && !hasHardcoreSuffix)
+        {
+            if (realmName.size() + hardcoreSuffix.size() <= 32)
+                realmName += hardcoreSuffix;
+            else
+                sLog.outError("Hardcore mode could not update realm name: '%s' exceeds 32 characters with the Hardcore suffix.", realmName.c_str());
+        }
+        else if (!hardcoreEnabled && hasHardcoreSuffix)
+            realmName.erase(realmName.size() - hardcoreSuffix.size());
+
+        if (hardcoreEnabled == (realmName.size() >= hardcoreSuffix.size() &&
+                realmName.compare(realmName.size() - hardcoreSuffix.size(), hardcoreSuffix.size(), hardcoreSuffix) == 0))
+        {
+            LoginDatabase.escape_string(realmName);
+            LoginDatabase.PExecute("UPDATE realmlist SET name = '%s' WHERE id = '%u'", realmName.c_str(), realmID);
+        }
+    }
+    else
+        sLog.outError("Hardcore mode could not update realm name: RealmID %u was not found in realmlist.", realmID);
 
     ///- Remove the bones (they should not exist in DB though) and old corpses after a restart
     CharacterDatabase.PExecute("DELETE FROM corpse WHERE corpse_type = '0' OR time < (" _UNIXTIME_ "-'%u')", 3 * DAY);

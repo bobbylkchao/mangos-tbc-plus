@@ -93,6 +93,8 @@
 #define SKILL_PERM_BONUS(x)    int16(PAIR32_HIPART(x))
 #define MAKE_SKILL_BONUS(t, p) MAKE_PAIR32(t,p)
 
+static uint32 const SPELL_PLAINSRUNNING = 90001;
+
 #ifdef BUILD_DEPRECATED_PLAYERBOT
 extern Config botConfig;
 #endif
@@ -1671,14 +1673,36 @@ void Player::UpdateAI(const uint32 diff, bool minimal)
 }
 #endif
 
+void Player::SetHardcoreDead(bool dead, bool persist)
+{
+    if (dead)
+        m_ExtraFlags |= PLAYER_EXTRA_HARDCORE_DEAD;
+    else
+        m_ExtraFlags &= ~PLAYER_EXTRA_HARDCORE_DEAD;
+
+    if (persist)
+    {
+        if (dead)
+            CharacterDatabase.DirectPExecute("UPDATE characters SET extra_flags = extra_flags | '%u' WHERE guid = '%u'",
+                uint32(PLAYER_EXTRA_HARDCORE_DEAD), GetGUIDLow());
+        else
+            CharacterDatabase.DirectPExecute("UPDATE characters SET extra_flags = extra_flags & '%u' WHERE guid = '%u'",
+                ~uint32(PLAYER_EXTRA_HARDCORE_DEAD), GetGUIDLow());
+    }
+}
+
 void Player::SetDeathState(DeathState s)
 {
     uint32 ressSpellId = 0;
 
     bool cur = IsAlive();
+    bool hardcoreDeath = s == JUST_DIED && cur && sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
 
     if (s == JUST_DIED && cur)
     {
+        if (hardcoreDeath)
+            SetHardcoreDead(true);
+
         // drunken state is cleared on death
         SetDrunkValue(0);
         // lost combo points at any target (targeted combo points clear in Unit::SetDeathState)
@@ -1704,12 +1728,17 @@ void Player::SetDeathState(DeathState s)
 
         if (InstanceData* mapInstance = GetInstanceData())
             mapInstance->OnPlayerDeath(this);
+
+        if (hardcoreDeath)
+            ressSpellId = 0;
     }
 
     Unit::SetDeathState(s);
 
+    if (hardcoreDeath)
+        SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
     // restore resurrection spell id for player after aura remove
-    if (s == JUST_DIED && cur && ressSpellId)
+    else if (s == JUST_DIED && cur && ressSpellId)
         SetUInt32Value(PLAYER_SELF_RES_SPELL, ressSpellId);
 
     if (IsAlive() && !cur)
@@ -4502,8 +4531,13 @@ void Player::BuildPlayerRepop()
     FailQuestsOnDeath(); // confirmed to be on release
 }
 
-void Player::ResurrectPlayer(float restore_percent, bool applySickness)
+bool Player::ResurrectPlayer(float restore_percent, bool applySickness, bool hardcoreOverride)
 {
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && IsHardcoreDead() && !hardcoreOverride)
+        return false;
+    if (IsHardcoreDead())
+        SetHardcoreDead(false);
+
     WorldPacket data(SMSG_DEATH_RELEASE_LOC, 4 * 4);        // remove spirit healer position
     data << uint32(-1);
     data << float(0);
@@ -4554,7 +4588,7 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     }
 
     if (!applySickness)
-        return;
+        return true;
 
     // Characters from level 1-10 are not affected by resurrection sickness.
     // Characters from level 11-19 will suffer from one minute of sickness
@@ -4579,10 +4613,18 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
             }
         }
     }
+
+    return true;
 }
 
 std::pair<bool, AreaTrigger const*> Player::CheckAndRevivePlayerOnDungeonEnter(MapEntry const* targetMapEntry, uint32 targetMapId)
 {
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && IsHardcoreDead())
+    {
+        GetSession()->SendAreaTriggerMessage("Hardcore characters cannot enter a dungeon after death");
+        return { false, nullptr };
+    }
+
     AreaTrigger const* resultingAt = nullptr;
 
     uint32 corpseMapId = 0;
@@ -4954,8 +4996,8 @@ void Player::RepopAtGraveyard()
     // Such zones are considered unreachable as a ghost and the player must be automatically revived
     if ((!IsAlive() && zone && zone->flags & AREA_FLAG_NEED_FLY) || GetTransport())
     {
-        ResurrectPlayer(0.5f);
-        SpawnCorpseBones();
+        if (ResurrectPlayer(0.5f))
+            SpawnCorpseBones();
     }
 
     WorldSafeLocsEntry const* ClosestGrave;
@@ -6391,6 +6433,8 @@ bool Player::SetPosition(float x, float y, float z, float orientation, bool tele
     // code block for underwater state update
     UpdateTerainEnvironmentFlags(m, x, y, z);
 
+    UpdateOutdoorRunSpeedBuff();
+
     // code block for outdoor state and area-explore check
     CheckAreaExploreAndOutdoor();
 
@@ -6460,6 +6504,36 @@ void Player::SendCinematicStart(uint32 CinematicSequenceId)
         m_cinematicMgr.reset(new CinematicMgr(this));
         m_cinematicMgr->SetActiveCinematicCamera(sequence->cinematicCamera);
     }
+}
+
+void Player::UpdateOutdoorRunSpeedBuff()
+{
+    bool shouldHaveBuff =
+        sWorld.getConfig(CONFIG_BOOL_OUTDOOR_RUN_SPEED_ENABLED) &&
+        IsAlive() &&
+        GetMap()->IsContinent() &&
+        !IsInCombat() &&
+        !IsMounted() &&
+        !IsTaxiFlying() &&
+        !m_movementInfo.HasMovementFlag(MOVEFLAG_SWIMMING) &&
+        !IsFlying() &&
+        m_movementInfo.HasMovementFlag(MOVEFLAG_MASK_XY) &&
+        m_movementInfo.GetSpeedType() == MOVE_RUN;
+
+    if (shouldHaveBuff)
+    {
+        bool isOutdoor = false;
+        GetTerrain()->GetAreaFlag(GetPositionX(), GetPositionY(), GetPositionZ(), &isOutdoor);
+        shouldHaveBuff = isOutdoor;
+    }
+
+    if (shouldHaveBuff)
+    {
+        if (!HasAura(SPELL_PLAINSRUNNING))
+            CastSpell(this, SPELL_PLAINSRUNNING, TRIGGERED_OLD_TRIGGERED);
+    }
+    else if (HasAura(SPELL_PLAINSRUNNING))
+        RemoveAurasDueToSpell(SPELL_PLAINSRUNNING);
 }
 
 void Player::CheckAreaExploreAndOutdoor()
@@ -15400,6 +15474,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     m_taxi.LoadTaxiMask(fields[17].GetString());            // must be before InitTaxiNodesForLevel
 
     uint32 extraflags = fields[31].GetUInt32();
+    m_ExtraFlags |= extraflags & PLAYER_EXTRA_HARDCORE_DEAD;
 
     m_stableSlots = fields[32].GetUInt32();
     if (m_stableSlots > MAX_PET_STABLES)
@@ -15474,8 +15549,12 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     _LoadAuras(holder->GetResult(PLAYER_LOGIN_QUERY_LOADAURAS), time_diff);
 
     // add ghost flag (must be after aura load: PLAYER_FLAGS_GHOST set in aura)
-    if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
+    if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST) ||
+            (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && IsHardcoreDead()))
+    {
+        SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST);
         m_deathState = DEAD;
+    }
 
     // after spell load
     InitTalentForLevel();
@@ -15814,7 +15893,8 @@ void Player::LoadCorpse()
         else
         {
             // Prevent Dead Player login without corpse
-            ResurrectPlayer(0.5f);
+            if (!sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED) || !IsHardcoreDead())
+                ResurrectPlayer(0.5f);
         }
     }
 }
@@ -20557,6 +20637,9 @@ bool Player::IsAtGroupRewardDistance(WorldObject const* pRewardSource) const
 
 void Player::AddResurrectRequest(ObjectGuid casterGuid, SpellEntry const* spellInfo, Position position, uint32 mapId, uint32 health, uint32 mana, bool isSpiritHealer, const char* sentName)
 {
+    if (sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && IsHardcoreDead())
+        return;
+
     if (isRessurectRequested()) // already have one active request
         return;
 
@@ -20597,7 +20680,11 @@ void Player::ResurrectUsingRequestDataInit()
 
 void Player::ResurrectUsingRequestDataFinish()
 {
-    ResurrectPlayer(0.0f, false);
+    if (!ResurrectPlayer(0.0f, false))
+    {
+        clearResurrectRequestData();
+        return;
+    }
 
     if (GetMaxHealth() > m_resurrectHealth)
         SetHealth(m_resurrectHealth);

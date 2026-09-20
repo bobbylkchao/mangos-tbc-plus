@@ -471,6 +471,9 @@ enum PlayerExtraFlags
 
     // death prevention
     PLAYER_EXTRA_GM_UNKILLABLE         = 0x0400,
+
+    // custom game modes
+    PLAYER_EXTRA_HARDCORE_DEAD         = 0x0800,
 };
 
 // 2^n values
@@ -1732,10 +1735,12 @@ class Player : public Unit
         Corpse* CreateCorpse();
         void KillPlayer();
         uint32 GetResurrectionSpellId() const;
-        void ResurrectPlayer(float restore_percent, bool applySickness = false);
+        bool ResurrectPlayer(float restore_percent, bool applySickness = false, bool hardcoreOverride = false);
         void BuildPlayerRepop();
         void RepopAtGraveyard();
         std::pair<bool, AreaTrigger const*> CheckAndRevivePlayerOnDungeonEnter(MapEntry const* targetMapEntry, uint32 targetMapId);
+        bool IsHardcoreDead() const { return (m_ExtraFlags & PLAYER_EXTRA_HARDCORE_DEAD) != 0; }
+        void SetHardcoreDead(bool dead, bool persist = true);
 
         void DurabilityLossAll(double percent, bool inventory);
         void DurabilityLoss(Item* item, double percent);
@@ -1792,6 +1797,7 @@ class Player : public Unit
         void ProcessDelayedOperations();
         void SetDelayedZoneUpdate(bool state, uint32 newZone) { m_needsZoneUpdate = state; m_newZone = newZone; }
 
+        void UpdateOutdoorRunSpeedBuff();
         void CheckAreaExploreAndOutdoor();
 
         static Team TeamForRace(uint8 race);

@@ -1,7 +1,25 @@
-# C(ontinued)-MaNGOS -- README
+# mangos-tbc
+
 [![Windows](../../actions/workflows/windows.yml/badge.svg)](../../actions/workflows/windows.yml) [![Ubuntu](../../actions/workflows/ubuntu.yml/badge.svg)](../../actions/workflows/ubuntu.yml) [![MacOS](../../actions/workflows/macos.yml/badge.svg)](../../actions/workflows/macos.yml)
 
-This file is part of the CMaNGOS Project. See [AUTHORS](AUTHORS.md) and [COPYRIGHT](COPYRIGHT.md) files for Copyright information
+This repository is a modified version of WoW CMaNGOS TBC, that adds interesting features—such as Hardcore and Plainsrunning etc. —while preserving the original gameplay.
+
+It is a fork of [cmangos/mangos-tbc](https://github.com/cmangos/mangos-tbc). The working tree for this project lives at [github.com/bobbylkchao/mangos-tbc](https://github.com/bobbylkchao/mangos-tbc).
+
+```text
+git clone https://github.com/bobbylkchao/mangos-tbc.git
+```
+
+This file is part of the CMaNGOS Project. See [AUTHORS](AUTHORS.md) and [COPYRIGHT](COPYRIGHT.md) files for Copyright information.
+
+## Custom features
+
+Options live at the end of `mangosd.conf` (see [`src/mangosd/mangosd.conf.dist.in`](src/mangosd/mangosd.conf.dist.in)). Defaults are `0` (off). Set the value to `1` to turn a feature on.
+
+| Feature | What it does | How to enable |
+| --- | --- | --- |
+| Plainsrunning | +30% run speed while on foot, outdoors, out of combat, on an open-world continent. Off while mounted, swimming, flying, indoors, in combat, or in instances. | Apply [`sql/updates/mangos/s2493_01_mangos_plainsrunning.sql`](sql/updates/mangos/s2493_01_mangos_plainsrunning.sql), then set `OutdoorRunSpeed.Enabled = 1`. Reload with `.reload config` or restart `mangosd`. |
+| Hardcore | Permadeath: dead characters stay ghosts and cannot be resurrected by normal gameplay (GM `.revive` still works). Forces PVE rules and appends ` Hardcore` to the realm-list name. | Set `Hardcore.Enabled = 1` and **restart** `mangosd` (not reloadable). The realm list updates after `realmd` refreshes, usually within ~20 seconds. |
 
 ## Welcome to C(ontinued)-MaNGOS
 
@@ -50,11 +68,15 @@ To be able to accomplish these goals, we support and promote:
 
 ## Further information
 
-  You can find further information about CMaNGOS at the following places:
+  This fork:
+  * [Repository](https://github.com/bobbylkchao/mangos-tbc)
+  * [Issues](https://github.com/bobbylkchao/mangos-tbc/issues)
+  * [Pull Requests](https://github.com/bobbylkchao/mangos-tbc/pulls)
+
+  Upstream CMaNGOS:
   * [CMaNGOS Discord](https://discord.gg/Dgzerzb)
-  * [GitHub repositories](https://github.com/cmangos/)
+  * [GitHub organization](https://github.com/cmangos/)
   * [Issue tracker](https://github.com/cmangos/issues/issues)
-  * [Pull Requests](https://github.com/cmangos/mangos-tbc/pulls)
   * [Wiki](https://github.com/cmangos/issues/wiki) with additional information on installation
   * [Contributing Guidelines](CONTRIBUTING.md)
   * Documentation can be found in the doc/ subdirectory and on the GitHub wiki

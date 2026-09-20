@@ -1925,3 +1925,24 @@ Metric.Password = ""
 
 Dummy.Debug1 = 0
 Dummy.Debug2 = 0
+
+###################################################################################################################
+# CUSTOM GAME MODES
+#
+#    OutdoorRunSpeed.Enabled
+#        Apply the "Plainsrunning" 30% movement speed buff while a player is running on foot,
+#        outdoors, out of combat, and on an open-world continent.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
+#
+#    Hardcore.Enabled
+#        Enable permanent death. Dead characters remain ghosts and cannot be resurrected by
+#        normal gameplay; a GM may still use the .revive command. Also forces Normal/PVE realm
+#        rules and appends " Hardcore" to the realm-list name. Requires a mangosd restart.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
+#
+###################################################################################################################
+
+OutdoorRunSpeed.Enabled = 0
+Hardcore.Enabled = 0

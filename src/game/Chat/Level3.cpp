@@ -3413,12 +3413,16 @@ bool ChatHandler::HandleReviveCommand(char* args)
 
     if (target)
     {
-        target->ResurrectPlayer(1.0f);
-        target->SpawnCorpseBones();
+        if (target->ResurrectPlayer(1.0f, false, true))
+            target->SpawnCorpseBones();
     }
     else
+    {
+        CharacterDatabase.DirectPExecute("UPDATE characters SET extra_flags = extra_flags & '%u' WHERE guid = '%u'",
+            ~uint32(PLAYER_EXTRA_HARDCORE_DEAD), target_guid.GetCounter());
         // will resurrected at login without corpse
         sObjectAccessor.ConvertCorpseForPlayer(target_guid);
+    }
 
     return true;
 }
