@@ -18,7 +18,7 @@ Options live at the end of `mangosd.conf` (see [`src/mangosd/mangosd.conf.dist.i
 
 | Feature | What it does | How to enable |
 | --- | --- | --- |
-| Plainsrunning | +30% run speed while on foot, outdoors, out of combat, on an open-world continent. Off while mounted, swimming, flying, indoors, in combat, or in instances. | Apply [`sql/updates/mangos/s2493_01_mangos_plainsrunning.sql`](sql/updates/mangos/s2493_01_mangos_plainsrunning.sql), then set `OutdoorRunSpeed.Enabled = 1`. Reload with `.reload config` or restart `mangosd`. |
+| Plainsrunning | Gains one visible stack (+1% run speed) every 5 seconds of continuous eligible movement, up to 30 stacks after 2.5 minutes. Stopping, mounting, swimming, flying, entering combat, going indoors, or entering an instance immediately resets all stacks. | Apply [`sql/updates/mangos/s2493_01_mangos_plainsrunning.sql`](sql/updates/mangos/s2493_01_mangos_plainsrunning.sql), then set `OutdoorRunSpeed.Enabled = 1`. Reload with `.reload config` or restart `mangosd`. |
 | Hardcore | Permadeath: dead characters stay ghosts and cannot be resurrected by normal gameplay (GM `.revive` still works). Forces PVE rules and appends ` Hardcore` to the realm-list name. | Set `Hardcore.Enabled = 1` and **restart** `mangosd` (not reloadable). The realm list updates after `realmd` refreshes, usually within ~20 seconds. |
 
 ## Welcome to C(ontinued)-MaNGOS

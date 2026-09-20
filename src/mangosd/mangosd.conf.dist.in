@@ -1930,8 +1930,10 @@ Dummy.Debug2 = 0
 # CUSTOM GAME MODES
 #
 #    OutdoorRunSpeed.Enabled
-#        Apply the "Plainsrunning" 30% movement speed buff while a player is running on foot,
-#        outdoors, out of combat, and on an open-world continent.
+#        Apply the "Plainsrunning" movement speed buff while a player is running on foot,
+#        outdoors, out of combat, and on an open-world continent. The buff gains one stack
+#        (+1% movement speed) every 5 seconds of continuous movement, up to 30 stacks.
+#        Losing any required condition immediately resets all progress and stacks.
 #        Default: 0 - (Disabled)
 #                 1 - (Enabled)
 #

@@ -93,7 +93,9 @@
 #define SKILL_PERM_BONUS(x)    int16(PAIR32_HIPART(x))
 #define MAKE_SKILL_BONUS(t, p) MAKE_PAIR32(t,p)
 
-static uint32 const SPELL_PLAINSRUNNING = 90001;
+static uint32 const SPELL_PLAINSRUNNING = 12821;
+static uint32 const PLAINSRUNNING_STACK_INTERVAL = 5 * IN_MILLISECONDS;
+static uint32 const PLAINSRUNNING_MAX_STACKS = 30;
 
 #ifdef BUILD_DEPRECATED_PLAYERBOT
 extern Config botConfig;
@@ -514,6 +516,8 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
     m_zoneUpdateId = 0;
     m_zoneUpdateTimer = 0;
     m_positionStatusUpdateTimer = 0;
+    m_plainsrunningProgress = 0;
+    m_plainsrunningIsOutdoor = false;
 
     m_areaUpdateId = 0;
 
@@ -1451,6 +1455,8 @@ void Player::Update(const uint32 diff)
     SetCanDelayTeleport(true);
     Unit::Update(diff);
     SetCanDelayTeleport(false);
+
+    UpdateOutdoorRunSpeedBuff(diff);
 
     if (IsHasDelayedTeleport() && m_semaphoreTeleport_Near)
         TeleportTo(m_teleport_dest, m_teleport_options);
@@ -6433,8 +6439,6 @@ bool Player::SetPosition(float x, float y, float z, float orientation, bool tele
     // code block for underwater state update
     UpdateTerainEnvironmentFlags(m, x, y, z);
 
-    UpdateOutdoorRunSpeedBuff();
-
     // code block for outdoor state and area-explore check
     CheckAreaExploreAndOutdoor();
 
@@ -6506,12 +6510,13 @@ void Player::SendCinematicStart(uint32 CinematicSequenceId)
     }
 }
 
-void Player::UpdateOutdoorRunSpeedBuff()
+void Player::UpdateOutdoorRunSpeedBuff(uint32 diff)
 {
     bool shouldHaveBuff =
         sWorld.getConfig(CONFIG_BOOL_OUTDOOR_RUN_SPEED_ENABLED) &&
         IsAlive() &&
         GetMap()->IsContinent() &&
+        m_plainsrunningIsOutdoor &&
         !IsInCombat() &&
         !IsMounted() &&
         !IsTaxiFlying() &&
@@ -6520,20 +6525,30 @@ void Player::UpdateOutdoorRunSpeedBuff()
         m_movementInfo.HasMovementFlag(MOVEFLAG_MASK_XY) &&
         m_movementInfo.GetSpeedType() == MOVE_RUN;
 
-    if (shouldHaveBuff)
+    if (!shouldHaveBuff)
     {
-        bool isOutdoor = false;
-        GetTerrain()->GetAreaFlag(GetPositionX(), GetPositionY(), GetPositionZ(), &isOutdoor);
-        shouldHaveBuff = isOutdoor;
+        m_plainsrunningProgress = 0;
+        if (HasAura(SPELL_PLAINSRUNNING))
+            RemoveAurasDueToSpell(SPELL_PLAINSRUNNING);
+        return;
     }
 
-    if (shouldHaveBuff)
+    uint32 maxProgress = PLAINSRUNNING_STACK_INTERVAL * PLAINSRUNNING_MAX_STACKS;
+    if (m_plainsrunningProgress < maxProgress)
+        m_plainsrunningProgress += std::min(diff, maxProgress - m_plainsrunningProgress);
+    uint32 desiredStacks = m_plainsrunningProgress / PLAINSRUNNING_STACK_INTERVAL;
+    if (!desiredStacks)
+        return;
+
+    SpellAuraHolder* holder = GetSpellAuraHolder(SPELL_PLAINSRUNNING);
+    if (!holder)
     {
-        if (!HasAura(SPELL_PLAINSRUNNING))
-            CastSpell(this, SPELL_PLAINSRUNNING, TRIGGERED_OLD_TRIGGERED);
+        CastSpell(this, SPELL_PLAINSRUNNING, TRIGGERED_OLD_TRIGGERED);
+        holder = GetSpellAuraHolder(SPELL_PLAINSRUNNING);
     }
-    else if (HasAura(SPELL_PLAINSRUNNING))
-        RemoveAurasDueToSpell(SPELL_PLAINSRUNNING);
+
+    if (holder && holder->GetStackAmount() != desiredStacks)
+        holder->SetStackAmount(desiredStacks, this);
 }
 
 void Player::CheckAreaExploreAndOutdoor()
@@ -6546,6 +6561,7 @@ void Player::CheckAreaExploreAndOutdoor()
 
     bool isOutdoor;
     uint16 areaFlag = GetTerrain()->GetAreaFlag(GetPositionX(), GetPositionY(), GetPositionZ(), &isOutdoor);
+    m_plainsrunningIsOutdoor = isOutdoor;
 
     if (isOutdoor)
     {

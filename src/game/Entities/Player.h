@@ -1797,7 +1797,7 @@ class Player : public Unit
         void ProcessDelayedOperations();
         void SetDelayedZoneUpdate(bool state, uint32 newZone) { m_needsZoneUpdate = state; m_newZone = newZone; }
 
-        void UpdateOutdoorRunSpeedBuff();
+        void UpdateOutdoorRunSpeedBuff(uint32 diff);
         void CheckAreaExploreAndOutdoor();
 
         static Team TeamForRace(uint8 race);
@@ -2485,6 +2485,8 @@ class Player : public Unit
         uint32 m_zoneUpdateTimer;
         uint32 m_areaUpdateId;
         uint32 m_positionStatusUpdateTimer;
+        uint32 m_plainsrunningProgress;
+        bool m_plainsrunningIsOutdoor;
 
         uint32 m_deathTimer;
         time_t m_deathExpireTime;

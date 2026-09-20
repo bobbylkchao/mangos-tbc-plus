@@ -1,13 +1,26 @@
 ALTER TABLE db_version CHANGE COLUMN required_s2492_01_mangos_gobject_near_link required_s2493_01_mangos_plainsrunning bit;
 
-DELETE FROM spell_template WHERE Id = 90001;
-INSERT INTO spell_template
-    (Id, Attributes, ProcChance, DurationIndex, RangeIndex,
-     Effect1, EffectDieSides1, EffectBaseDice1, EffectBasePoints1,
-     EffectImplicitTargetA1, EffectApplyAuraName1, DmgMultiplier1,
-     SpellName, IsServerSide)
-VALUES
-    (90001, 0, 101, 21, 1,
-     6, 1, 1, 29,
-     1, 31, 1,
-     'Plainsrunning', 1);
+UPDATE spell_template SET
+    Attributes = 0,
+    AttributesEx = 0,
+    AttributesEx2 = 0,
+    AttributesEx3 = 0,
+    AttributesEx4 = 0,
+    AttributesEx5 = 0,
+    DurationIndex = 21,
+    RangeIndex = 1,
+    StackAmount = 30,
+    Effect1 = 6,
+    Effect2 = 0,
+    Effect3 = 0,
+    EffectDieSides1 = 1,
+    EffectBaseDice1 = 1,
+    EffectBasePoints1 = 0,
+    EffectImplicitTargetA1 = 1,
+    EffectImplicitTargetB1 = 0,
+    EffectApplyAuraName1 = 31,
+    EffectMiscValue1 = 0,
+    EffectMiscValueB1 = 0,
+    EffectTriggerSpell1 = 0,
+    DmgMultiplier1 = 1
+WHERE Id = 12821;
