@@ -1703,6 +1703,11 @@ void Player::SetDeathState(DeathState s)
 
     bool cur = IsAlive();
     bool hardcoreDeath = s == JUST_DIED && cur && sWorld.getConfig(CONFIG_BOOL_HARDCORE_ENABLED);
+#ifdef ENABLE_PLAYERBOTS
+    // Playerbots keep normal death/resurrection rules even on Hardcore realms.
+    if (hardcoreDeath && !isRealPlayer())
+        hardcoreDeath = false;
+#endif
 
     if (s == JUST_DIED && cur)
     {
@@ -1745,23 +1750,16 @@ void Player::SetDeathState(DeathState s)
     {
         SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
 
-        bool announceDeath = true;
-#ifdef ENABLE_PLAYERBOTS
-        announceDeath = isRealPlayer();
-#endif
-        if (announceDeath)
-        {
-            AreaTableEntry const* zone = GetAreaEntryByAreaID(GetCachedZoneId());
-            char const* zoneName = zone ? zone->area_name[sWorld.GetDefaultDbcLocale()] : nullptr;
+        AreaTableEntry const* zone = GetAreaEntryByAreaID(GetCachedZoneId());
+        char const* zoneName = zone ? zone->area_name[sWorld.GetDefaultDbcLocale()] : nullptr;
 
-            char message[256];
-            if (zoneName)
-                snprintf(message, sizeof(message), "%s has died at level %u while in %s.", GetName(), GetLevel(), zoneName);
-            else
-                snprintf(message, sizeof(message), "%s has died at level %u.", GetName(), GetLevel());
+        char message[256];
+        if (zoneName)
+            snprintf(message, sizeof(message), "%s has died at level %u while in %s.", GetName(), GetLevel(), zoneName);
+        else
+            snprintf(message, sizeof(message), "%s has died at level %u.", GetName(), GetLevel());
 
-            sWorld.SendServerMessage(SERVER_MSG_CUSTOM, message);
-        }
+        sWorld.SendServerMessage(SERVER_MSG_CUSTOM, message);
     }
     // restore resurrection spell id for player after aura remove
     else if (s == JUST_DIED && cur && ressSpellId)

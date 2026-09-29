@@ -819,6 +819,7 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_CHARDELETE_KEEP_DAYS, "CharDelete.KeepDays", 30);
 
     setConfig(CONFIG_BOOL_OUTDOOR_RUN_SPEED_ENABLED, "OutdoorRunSpeed.Enabled", false);
+    setConfig(CONFIG_BOOL_CRAFTSMAN_BOARD_ENABLED, "CraftsmanBoard.Enabled", false);
     if (configNoReload(reload, CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enabled", false))
         setConfig(CONFIG_BOOL_HARDCORE_ENABLED, "Hardcore.Enabled", false);
     if (getConfig(CONFIG_BOOL_HARDCORE_ENABLED) && getConfig(CONFIG_UINT32_GAME_TYPE) != REALM_TYPE_NORMAL)

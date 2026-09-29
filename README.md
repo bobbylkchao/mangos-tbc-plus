@@ -2,7 +2,7 @@
 
 [![Windows](../../actions/workflows/windows.yml/badge.svg)](../../actions/workflows/windows.yml) [![Ubuntu](../../actions/workflows/ubuntu.yml/badge.svg)](../../actions/workflows/ubuntu.yml) [![MacOS](../../actions/workflows/macos.yml/badge.svg)](../../actions/workflows/macos.yml)
 
-This repository is a modified version of WoW CMaNGOS TBC, that adds interesting features—such as Hardcore, Plainsrunning and smarter PlayerBot grouping etc. —while preserving the original gameplay.
+This repository is a modified version of WoW CMaNGOS TBC, that adds interesting features—such as Hardcore, Plainsrunning, Craftsman Board enchanting and smarter PlayerBot grouping etc. —while preserving the original gameplay.
 
 It is a fork of [cmangos/mangos-tbc](https://github.com/cmangos/mangos-tbc). The working tree for this project lives at [github.com/bobbylkchao/mangos-tbc-plus](https://github.com/bobbylkchao/mangos-tbc-plus).
 
@@ -19,7 +19,8 @@ Game-mode switches live at the end of `mangosd.conf` (see [`src/mangosd/mangosd.
 | Feature | What it does | How to enable |
 | --- | --- | --- |
 | Plainsrunning | Gains one visible stack (+1% run speed) every 5 seconds of continuous eligible movement, up to 30 stacks after 2.5 minutes. Stopping, mounting, swimming, flying, entering combat, going indoors, or entering an instance immediately resets all stacks. | Apply [`sql/updates/mangos/s2493_01_mangos_plainsrunning.sql`](sql/updates/mangos/s2493_01_mangos_plainsrunning.sql), then set `OutdoorRunSpeed.Enabled = 1`. Reload with `.reload config` or restart `mangosd`. |
-| Hardcore | Permadeath: dead characters stay ghosts and cannot be resurrected by normal gameplay (GM `.revive` still works). Forces PVE rules and appends ` Hardcore` to the realm-list name. | Set `Hardcore.Enabled = 1` and **restart** `mangosd` (not reloadable). The realm list updates after `realmd` refreshes, usually within ~20 seconds. |
+| Hardcore | Permadeath: dead characters stay ghosts and cannot be resurrected by normal gameplay (GM `.revive` still works). Forces PVE rules and appends ` Hardcore` to the realm-list name. On login, players see a red greeting. Permanent deaths are announced server-wide with name, level and zone. PlayerBots are excluded from Hardcore death rules so they can still be resurrected. | Set `Hardcore.Enabled = 1` and **restart** `mangosd` (not reloadable). The realm list updates after `realmd` refreshes, usually within ~20 seconds. |
+| Craftsman Board | Talk to the Craftsman Board NPC in each major city (and Shattrath) to pay **200 gold** for a permanent enchant on an **equipped** item. A PlayerBot performs the service, is treated as max Enchanting with all recipes, and materials are auto-provided. | Apply [`sql/updates/mangos/s2494_01_mangos_craftsman_board.sql`](sql/updates/mangos/s2494_01_mangos_craftsman_board.sql), build with `-DBUILD_PLAYERBOTS=ON`, then set `CraftsmanBoard.Enabled = 1`. Reload with `.reload config` or restart `mangosd`. |
 | PlayerBot LFG | Bots answering `lfg` match the player's exact level and rebuild gear. Below 60 only `lfg 5` / `lfg 10`; 60+ also allows 20 / 25 / 40. | Build with `-DBUILD_PLAYERBOTS=ON`. CMake applies [`patches/playerbots-lfg-level-sync.patch`](patches/playerbots-lfg-level-sync.patch) automatically. |
 
 ## Welcome to C(ontinued)-MaNGOS

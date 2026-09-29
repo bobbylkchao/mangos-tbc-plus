@@ -1944,7 +1944,15 @@ Dummy.Debug2 = 0
 #        Default: 0 - (Disabled)
 #                 1 - (Enabled)
 #
+#    CraftsmanBoard.Enabled
+#        Enable the Craftsman Board NPCs in major cities. Players can pay 200 gold to have a
+#        PlayerBot permanently enchant an equipped item. Bots are treated as max-skill with all
+#        recipes, and materials are provided automatically. Requires BUILD_PLAYERBOTS=ON.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
+#
 ###################################################################################################################
 
 OutdoorRunSpeed.Enabled = 0
 Hardcore.Enabled = 0
+CraftsmanBoard.Enabled = 0
