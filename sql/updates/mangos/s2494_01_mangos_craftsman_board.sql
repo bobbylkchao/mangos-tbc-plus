@@ -15,17 +15,19 @@ VALUES
  1, 1, 1, 1,
  5000, 5000, 0, 0, 0, 'npc_craftsman_board');
 
--- One board per major city + Shattrath.
+-- One board per major city, on the auction-house floor at the spot city guards mark.
+-- Shattrath has no auction house; that board stands on the Terrace of Light beside A'dal.
+-- Heights match the auctioneers on that floor so the NPC is not spawned under the mesh.
 INSERT INTO `creature`
 (`guid`, `id`, `map`, `spawnMask`, `position_x`, `position_y`, `position_z`, `orientation`,
  `spawntimesecsmin`, `spawntimesecsmax`, `spawndist`, `MovementType`)
 VALUES
-(910001, 910001, 0,   1, -8850.47,   654.58,   96.70, 0.60, 300, 300, 0, 0), -- Stormwind
-(910002, 910001, 0,   1, -4950.00, -1190.00,  501.50, 2.20, 300, 300, 0, 0), -- Ironforge
-(910003, 910001, 1,   1, 10106.00,  2575.00, 1322.00, 5.50, 300, 300, 0, 0), -- Darnassus
-(910004, 910001, 530, 1, -3870.00,-11645.00, -137.60, 2.20, 300, 300, 0, 0), -- Exodar
-(910005, 910001, 1,   1,  1678.00, -4430.00,   19.50, 1.80, 300, 300, 0, 0), -- Orgrimmar
-(910006, 910001, 1,   1, -1209.00,    50.00,  140.00, 3.10, 300, 300, 0, 0), -- Thunder Bluff
-(910007, 910001, 0,   1,  1633.00,   220.00,  -43.00, 2.50, 300, 300, 0, 0), -- Undercity
-(910008, 910001, 530, 1,  9680.00, -7295.00,   14.50, 4.00, 300, 300, 0, 0), -- Silvermoon
-(910009, 910001, 530, 1, -1828.00,  5426.00,  -12.40, 1.00, 300, 300, 0, 0); -- Shattrath
+(910001, 910001, 0,   1, -8812.00,   666.35,   96.90, 1.73, 300, 300, 0, 0), -- Stormwind, Trade District AH
+(910002, 910001, 0,   1, -4956.43,  -909.20,  503.92, 0.70, 300, 300, 0, 0), -- Ironforge, Commons AH door
+(910003, 910001, 1,   1,  9862.00,  2339.19, 1321.67, 0.80, 300, 300, 0, 0), -- Darnassus, Tradesmen's Terrace AH
+(910004, 910001, 530, 1, -4020.00,-11733.50, -151.81, 0.50, 300, 300, 0, 0), -- Exodar, Seat of the Naaru AH
+(910005, 910001, 1,   1,  1679.00, -4450.11,   20.15, 1.90, 300, 300, 0, 0), -- Orgrimmar, Valley of Strength AH
+(910006, 910001, 1,   1, -1198.00,   102.05,  134.80, 3.05, 300, 300, 0, 0), -- Thunder Bluff, lower rise AH
+(910007, 910001, 0,   1,  1650.00,   240.19,  -56.79, 0.10, 300, 300, 0, 0), -- Undercity, Trade Quarter AH
+(910008, 910001, 530, 1,  9683.17, -7518.94,   18.26, 1.62, 300, 300, 0, 0), -- Silvermoon, Bazaar AH
+(910009, 910001, 530, 1, -1853.68,  5430.04,   -9.71, 3.14, 300, 300, 0, 0); -- Shattrath, Terrace of Light

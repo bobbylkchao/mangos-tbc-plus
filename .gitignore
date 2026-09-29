@@ -43,6 +43,7 @@ autom4te.cache
 *.orig
 *.patch
 !patches/playerbots-lfg-level-sync.patch
+!patches/playerbots-enchant-fit-check.patch
 callgrind.out.*
 nbproject/
 .idea/

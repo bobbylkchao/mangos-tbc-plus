@@ -2007,6 +2007,11 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(ProcExecutionData& data
                 case 23780:                                 // Aegis of Preservation (Aegis of Preservation trinket)
                     trigger_spell_id = 23781;
                     break;
+                case 45059:                                 // Vessel of the Naaru (Vial of the Sunwell)
+                    // Holy Energy stacks must not re-proc the collector aura.
+                    if (spellInfo && spellInfo->Id == 45062)
+                        return SPELL_AURA_PROC_FAILED;
+                    break;
                 case 24905:                                 // Moonkin Form (Passive)
                 {
                     // Elune's Touch (instead non-existed triggered spell) 30% from AP

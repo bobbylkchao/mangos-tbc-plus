@@ -63,6 +63,29 @@ if(BUILD_PLAYERBOTS)
     message(STATUS "PlayerBots LFG level sync patch already applied")
   endif()
 
+  set(PLAYERBOTS_ENCHANT_PATCH "${CMAKE_SOURCE_DIR}/patches/playerbots-enchant-fit-check.patch")
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} apply --reverse --check "${PLAYERBOTS_ENCHANT_PATCH}"
+    WORKING_DIRECTORY "${playerbots_SOURCE_DIR}"
+    RESULT_VARIABLE PLAYERBOTS_ENCHANT_PATCH_APPLIED
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+  if(NOT PLAYERBOTS_ENCHANT_PATCH_APPLIED EQUAL 0)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} apply "${PLAYERBOTS_ENCHANT_PATCH}"
+      WORKING_DIRECTORY "${playerbots_SOURCE_DIR}"
+      RESULT_VARIABLE PLAYERBOTS_ENCHANT_PATCH_RESULT
+      ERROR_VARIABLE PLAYERBOTS_ENCHANT_PATCH_ERROR
+    )
+    if(NOT PLAYERBOTS_ENCHANT_PATCH_RESULT EQUAL 0)
+      message(FATAL_ERROR "Unable to apply PlayerBots enchant fit patch: ${PLAYERBOTS_ENCHANT_PATCH_ERROR}")
+    endif()
+    message(STATUS "Applied PlayerBots enchant fit-check patch")
+  else()
+    message(STATUS "PlayerBots enchant fit-check patch already applied")
+  endif()
+
   add_subdirectory(${playerbots_SOURCE_DIR})
 
 else()

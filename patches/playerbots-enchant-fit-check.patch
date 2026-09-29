@@ -1,0 +1,223 @@
+diff --git a/playerbot/PlayerbotAI.cpp b/playerbot/PlayerbotAI.cpp
+index 25adeeeb..6cd22e57 100644
+--- a/playerbot/PlayerbotAI.cpp
++++ b/playerbot/PlayerbotAI.cpp
+@@ -8477,58 +8477,63 @@ void PlayerbotAI::ImbueItem(Item* item, uint32 targetFlag, ObjectGuid targetGUID
+ 
+ void PlayerbotAI::EnchantItemT(uint32 spellid, uint8 slot, Item* item)
+ {
+-    Item* pItem = nullptr;
+-    if (item)
+-        pItem = item;
+-    else
+-        pItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
+-
+-   if (!pItem)
+-    return;
++    Item* pItem = item ? item : bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
++    if (!pItem)
++        return;
+ 
+-   if (pItem->GetSlot() != slot)
+-       return;
++    // When an explicit item is provided, trust that item; otherwise require the slot match.
++    if (!item && pItem->GetSlot() != slot)
++        return;
+ 
+ #ifdef CMANGOS
+-   if (pItem->GetOwner() == nullptr)
+-       return;
++    if (pItem->GetOwner() == nullptr)
++        return;
+ #endif
+ 
+ #ifdef MANGOS
+-   SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid);
++    SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid);
+ #else
+-   SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellid);
++    SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellid);
+ #endif
+-   if (!spellInfo)
+-      return;
+-
+-   uint32 enchantid = spellInfo->EffectMiscValue[0];
+-   if (!enchantid)
+-   {
+-      sLog.outError("%u: Invalid enchantid %s %s" , enchantid , " report to devs", bot->GetName());
+-      return;
+-   }
+-
+-   if (!((1 << pItem->GetProto()->SubClass) & spellInfo->EquippedItemSubClassMask) &&
+-      !((1 << pItem->GetProto()->InventoryType) & spellInfo->EquippedItemInventoryTypeMask))
+-   {
++    if (!spellInfo)
++        return;
+ 
+-      sLog.outError("%s: items could not be enchanted, wrong item type equipped", bot->GetName());
++    uint32 enchantid = 0;
++    for (uint32 i = 0; i < MAX_EFFECT_INDEX; ++i)
++    {
++        if (spellInfo->Effect[i] == SPELL_EFFECT_ENCHANT_ITEM
++#ifdef MANGOSBOT_TWO
++            || spellInfo->Effect[i] == SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC
++#endif
++            )
++        {
++            enchantid = spellInfo->EffectMiscValue[i];
++            break;
++        }
++    }
++    if (!enchantid)
++        return;
+ 
+-      return;
+-   }
++    // Use core fit rules; silent skip avoids spam when a template lists an
++    // enchant for a slot/spec that this specific item cannot take.
++    if (!pItem->IsFitToSpellRequirements(spellInfo))
++        return;
+ 
+ #ifdef MANGOSBOT_TWO
+-   EnchantmentSlot enchantSlot = spellInfo->Effect[0] == SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC ? PRISMATIC_ENCHANTMENT_SLOT : PERM_ENCHANTMENT_SLOT;
++    EnchantmentSlot enchantSlot = spellInfo->Effect[0] == SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC ? PRISMATIC_ENCHANTMENT_SLOT : PERM_ENCHANTMENT_SLOT;
+ #else
+-   EnchantmentSlot enchantSlot = PERM_ENCHANTMENT_SLOT;
++    EnchantmentSlot enchantSlot = PERM_ENCHANTMENT_SLOT;
+ #endif
+ 
+-   bot->ApplyEnchantment(pItem, enchantSlot, false);
+-   pItem->SetEnchantment(enchantSlot, enchantid, 0, 0);
+-   bot->ApplyEnchantment(pItem, enchantSlot, true);
++    Player* owner = pItem->GetOwner();
++    if (!owner)
++        owner = bot;
++
++    owner->ApplyEnchantment(pItem, enchantSlot, false);
++    pItem->SetEnchantment(enchantSlot, enchantid, 0, 0, owner->GetObjectGuid());
++    owner->ApplyEnchantment(pItem, enchantSlot, true);
+ 
+-   sLog.outDetail("%s: items was enchanted successfully!", bot->GetName());
++    sLog.outDetail("%s: item was enchanted successfully!", bot->GetName());
+ }
+ 
+ uint32 PlayerbotAI::GetBuffedCount(Player* player, std::string spellname)
+diff --git a/playerbot/PlayerbotFactory.cpp b/playerbot/PlayerbotFactory.cpp
+index 2f03556f..cc0f99fc 100644
+--- a/playerbot/PlayerbotFactory.cpp
++++ b/playerbot/PlayerbotFactory.cpp
+@@ -108,7 +108,7 @@ void PlayerbotFactory::Init()
+     }
+ }
+ 
+-void PlayerbotFactory::Prepare()
++void PlayerbotFactory::Prepare(bool forceLevel)
+ {
+     /*if (!itemQuality)
+     {
+@@ -147,7 +147,7 @@ void PlayerbotFactory::Prepare()
+         }
+     }*/
+ 
+-    if (!sPlayerbotAIConfig.disableRandomLevels)
++    if (forceLevel || !sPlayerbotAIConfig.disableRandomLevels)
+     {
+         bot->SetLevel(level);
+         //Reset xp and xp for next level.
+@@ -166,12 +166,12 @@ void PlayerbotFactory::Prepare()
+     }
+ }
+ 
+-void PlayerbotFactory::Randomize(bool incremental, bool syncWithMaster)
++void PlayerbotFactory::Randomize(bool incremental, bool syncWithMaster, bool forceLevel)
+ {
+     sLog.outDetail("Preparing to %s randomize...", (incremental ? "incremental" : "full"));
+-    Prepare();
++    Prepare(forceLevel);
+ 
+-    if (sPlayerbotAIConfig.disableRandomLevels)
++    if (sPlayerbotAIConfig.disableRandomLevels && !forceLevel)
+     {
+         return;
+     }
+@@ -5369,8 +5369,26 @@ void PlayerbotFactory::ApplyEnchantTemplate()
+ void PlayerbotFactory::ApplyEnchantTemplate(uint8 spec, Item* item)
+ {
+    for (EnchantContainer::const_iterator itr = GetEnchantContainerBegin(); itr != GetEnchantContainerEnd(); ++itr)
+-      if ((*itr)->ClassId == bot->getClass() && (*itr)->SpecId == spec)
+-         ai->EnchantItemT((*itr)->SpellId, (*itr)->SlotId, item);
++   {
++      if ((*itr)->ClassId != bot->getClass() || (*itr)->SpecId != spec)
++         continue;
++
++      Item* target = item;
++      if (!target)
++         target = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, (*itr)->SlotId);
++      if (!target || target->GetSlot() != (*itr)->SlotId)
++         continue;
++
++#ifdef MANGOS
++      SpellEntry const* spellInfo = sSpellStore.LookupEntry((*itr)->SpellId);
++#else
++      SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>((*itr)->SpellId);
++#endif
++      if (!spellInfo || !target->IsFitToSpellRequirements(spellInfo))
++         continue;
++
++      ai->EnchantItemT((*itr)->SpellId, (*itr)->SlotId, target);
++   }
+ }
+ 
+ void PlayerbotFactory::LoadEnchantContainer()
+diff --git a/playerbot/strategy/actions/EquipAction.cpp b/playerbot/strategy/actions/EquipAction.cpp
+index 3d4cb9d2..2d834e54 100644
+--- a/playerbot/strategy/actions/EquipAction.cpp
++++ b/playerbot/strategy/actions/EquipAction.cpp
+@@ -100,18 +100,18 @@ void EquipAction::ListItems(Player* requester)
+ 
+ bool EquipAction::IsEnchantable(Item* item, uint32 spellid)
+ {
++    if (!item)
++        return false;
+ 
+ #ifdef MANGOS
+-   SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid);
++    SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid);
+ #else
+-   SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellid);
++    SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellid);
+ #endif
+-   if (!spellInfo)
+-      return false;
+-
+-    return ((1 << item->GetProto()->SubClass) & spellInfo->EquippedItemSubClassMask) &&
+-      ((1 << item->GetProto()->InventoryType) & spellInfo->EquippedItemInventoryTypeMask);
++    if (!spellInfo)
++        return false;
+ 
++    return item->IsFitToSpellRequirements(spellInfo);
+ }
+ 
+ void EquipAction::EnchantItem(Item* item)
+diff --git a/playerbot/strategy/actions/UpdateGearAction.cpp b/playerbot/strategy/actions/UpdateGearAction.cpp
+index f3524645..ad8eacc9 100644
+--- a/playerbot/strategy/actions/UpdateGearAction.cpp
++++ b/playerbot/strategy/actions/UpdateGearAction.cpp
+@@ -227,9 +227,15 @@ void UpdateGearAction::EnchantItem(Item* item)
+ 
+         for (const auto& enchant : enchants)
+         {
+-            if (enchant.ClassId == bot->getClass() && enchant.SpecId == spec)
++            if (enchant.ClassId == bot->getClass() && enchant.SpecId == spec && enchant.SlotId == item->GetSlot())
+             {
+-                ai->EnchantItemT(enchant.SpellId, enchant.SlotId, item);
++#ifdef MANGOS
++                SpellEntry const* spellInfo = sSpellStore.LookupEntry(enchant.SpellId);
++#else
++                SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(enchant.SpellId);
++#endif
++                if (spellInfo && item->IsFitToSpellRequirements(spellInfo))
++                    ai->EnchantItemT(enchant.SpellId, enchant.SlotId, item);
+             }
+         }
+     }
